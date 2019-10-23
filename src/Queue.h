@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <mutex>
+#include <condition_variable>
 
 namespace pr {
 
@@ -15,6 +16,9 @@ class Queue {
 	size_t sz;
 	mutable std::mutex m;
 
+	std::condition_variable cv; // pour attendre et réveiller en temps voulu
+	bool isBlocking = true; // Si les fonctions pop et push sont bloquantes ou non
+
 	// fonctions private, sans protection mutex
 	bool empty() const {
 		return sz == 0;
@@ -23,6 +27,9 @@ class Queue {
 		return sz == allocsize;
 	}
 public:
+	void setBlocking(bool block) {
+		isBlocking = block;
+	}
 	Queue(size_t size) :allocsize(size), begin(0), sz(0) {
 		tab = new T*[size];
 		memset(tab, 0, size * sizeof(T*));
@@ -31,10 +38,17 @@ public:
 		std::unique_lock<std::mutex> lg(m);
 		return sz;
 	}
+
 	T* pop() {
 		std::unique_lock<std::mutex> lg(m);
+		while (isBlocking && empty()) {
+			cv.wait(lg);
+		}
 		if (empty()) {
 			return nullptr;
+		}
+		if (full()) {
+			cv.notify_all();
 		}
 		auto ret = tab[begin];
 		tab[begin] = nullptr;
@@ -44,6 +58,9 @@ public:
 	}
 	bool push(T* elt) {
 		std::unique_lock<std::mutex> lg(m);
+		while (isBlocking && full()) {
+			cv.wait(lg);
+		}
 		if (full()) {
 			return false;
 		}

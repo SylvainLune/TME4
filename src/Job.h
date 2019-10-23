@@ -8,6 +8,8 @@ public:
 	virtual ~Job() {};
 };
 
+// Cette classe est chargée du calcul la couleur d'un pixel
+
 // Job concret : exemple
 
 /**

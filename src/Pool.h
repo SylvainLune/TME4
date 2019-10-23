@@ -16,6 +16,11 @@ public:
 	void submit (Job * job) ;
 	void stop() ;
 	~Pool() ;
+
+	//void poolWorker(Queue<Job> *q);
+
+	// Gestion du travail des threads
+	void threadWork();
 };
 
 }
